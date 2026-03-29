@@ -63,7 +63,7 @@ class EnergyInfoCard extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            flex: 2,
+            flex: 3,
             child: Text(
               label,
               style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.w500),

@@ -19,30 +19,35 @@ class LiveEnergyCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  'Live Energy Solar 01',
-                  style: TextStyle(fontSize: 18, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Live Energy Solar 01',
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
+                  ),
                 ),
                 const SizedBox(height: 2),
-                const Text(
-                  '53.08 KW',
-                  style: TextStyle(fontSize: 26, color: Color(0xFF0F2040), fontWeight: FontWeight.w900),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: const Text(
+                    '53.08 KW',
+                    style: TextStyle(fontSize: 22, color: Color(0xFF0F2040), fontWeight: FontWeight.w900),
+                  ),
                 ),
-                const SizedBox(height: 12), // Spacer to balance the bottom part of the gauge
+                //const SizedBox(height: 12), // Spacer to balance the bottom part of the gauge
               ],
             ),
           ),
           Expanded(
             flex: 1,
             child: SizedBox(
-              height: 120, // Give fixed height for gauge to prevent unbounded height issue
+              height: 100, // Proportional height for standard gauges
               child: SfRadialGauge(
-                
                 enableLoadingAnimation: true,
                 animationDuration: 1200,
                 axes: <RadialAxis>[
                   RadialAxis(
-                    radiusFactor: 1.2,
+                    radiusFactor: 1.1, // Ensures gauge fits within constraints without clipping labels
                     startAngle: 180,
                     endAngle: 360,
                     canScaleToFit: true,

@@ -54,7 +54,7 @@ class _ChartCardState extends State<ChartCard> {
                       setState(() => _isTodayData = true);
                     }),
                     const SizedBox(width: 8),
-                    _buildToggleButton('Custom Date Data', !_isTodayData, () {
+                    _buildToggleButton('Custom Date', !_isTodayData, () {
                       setState(() => _isTodayData = false);
                     }),
                   ],
@@ -210,7 +210,18 @@ class _ChartCardState extends State<ChartCard> {
                 const Icon(Icons.check_circle_outline, color: Colors.white, size: 22),
                 const SizedBox(width: 6),
               ],
-              Text(title, style: TextStyle(fontSize: 17, fontWeight: isActive ? FontWeight.w700 : FontWeight.w600)),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
