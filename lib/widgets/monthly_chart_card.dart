@@ -61,17 +61,20 @@ class MonthlyChartCard extends StatelessWidget {
                     tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
                     tooltipSettings: const InteractiveTooltip(enable: true, format: 'series.name : point.y kWh'),
                   ),
-                  primaryXAxis: CategoryAxis(
+                  primaryXAxis: NumericAxis(
                     majorGridLines: const MajorGridLines(width: 0),
-                    plotOffset: 25,
                     labelStyle: const TextStyle(fontSize: 10, color: Colors.grey),
                     interval: 1,
-                    labelIntersectAction: AxisLabelIntersectAction.none,
-                    // Show 15 days initially
-                    initialVisibleMinimum: -0.8,
-                    initialVisibleMaximum: 14.2,
-                    labelPlacement: LabelPlacement.onTicks,
+                    minimum: 0.5,
+                    maximum: 31.5,
+                    // Show first 15 days by default without clipping first/last columns.
+                    initialVisibleMinimum: 0.5,
+                    initialVisibleMaximum: 15.5,
                     edgeLabelPlacement: EdgeLabelPlacement.shift,
+                    rangePadding: ChartRangePadding.none,
+                    axisLabelFormatter: (AxisLabelRenderDetails details) {
+                      return ChartAxisLabel(details.value.toInt().toString(), details.textStyle);
+                    },
                   ),
                   primaryYAxis: NumericAxis(
                     minimum: 0,
@@ -86,50 +89,50 @@ class MonthlyChartCard extends StatelessWidget {
                   ),
                   series: <CartesianSeries>[
                     if (controller.isVisible('Solar'))
-                      ColumnSeries<MonthChartData, String>(
+                      ColumnSeries<MonthChartData, num>(
                         name: 'Solar',
                         dataSource: allData,
-                        xValueMapper: (d, _) => d.x.toInt().toString(),
+                        xValueMapper: (d, _) => d.x,
                         yValueMapper: (d, _) => d.solar,
                         color: const Color(0xFF00C7E5),
                         width: 0.8,
                         spacing: 0.1,
                       ),
                     if (controller.isVisible('REB'))
-                      ColumnSeries<MonthChartData, String>(
+                      ColumnSeries<MonthChartData, num>(
                         name: 'REB',
                         dataSource: allData,
-                        xValueMapper: (d, _) => d.x.toInt().toString(),
+                        xValueMapper: (d, _) => d.x,
                         yValueMapper: (d, _) => d.reb,
                         color: const Color(0xFFFF9F00),
                         width: 0.8,
                         spacing: 0.1,
                       ),
                     if (controller.isVisible('Load'))
-                      ColumnSeries<MonthChartData, String>(
+                      ColumnSeries<MonthChartData, num>(
                         name: 'Load',
                         dataSource: allData,
-                        xValueMapper: (d, _) => d.x.toInt().toString(),
+                        xValueMapper: (d, _) => d.x,
                         yValueMapper: (d, _) => d.load,
                         color: const Color(0xFFD300C5),
                         width: 0.8,
                         spacing: 0.1,
                       ),
                     if (controller.isVisible('Generator'))
-                      ColumnSeries<MonthChartData, String>(
+                      ColumnSeries<MonthChartData, num>(
                         name: 'Generator',
                         dataSource: allData,
-                        xValueMapper: (d, _) => d.x.toInt().toString(),
+                        xValueMapper: (d, _) => d.x,
                         yValueMapper: (d, _) => d.gen,
                         color: const Color(0xFF0091FF),
                         width: 0.8,
                         spacing: 0.1,
                       ),
                     if (controller.isVisible('ESS'))
-                      ColumnSeries<MonthChartData, String>(
+                      ColumnSeries<MonthChartData, num>(
                         name: 'ESS',
                         dataSource: allData,
-                        xValueMapper: (d, _) => d.x.toInt().toString(),
+                        xValueMapper: (d, _) => d.x,
                         yValueMapper: (d, _) => d.ess,
                         color: const Color(0xFF7ED321),
                         width: 0.8,
