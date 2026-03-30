@@ -39,10 +39,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           children: [
             Container(
-              margin: const EdgeInsets.only(top: 16.0),
+              margin: const EdgeInsets.only(top: 8.0),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(24.0),
+                borderRadius: BorderRadius.circular(15.0),
                 border: Border.all(color: const Color(0xFFDDE1E6), width: 1.2),
               ),
               child: const Column(
@@ -50,7 +50,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             const UnifiedChartSegment(),
-            const SizedBox(height: 24), // Bottom padding
+            // const SizedBox(height: 24), // Bottom padding
           ],
         ),
       ),

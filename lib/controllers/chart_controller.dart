@@ -17,24 +17,4 @@ class ChartController extends GetxController {
       _isVisible[name] = !(_isVisible[name]!);
     }
   }
-
-  // --- Pagination ---
-  final monthlyPage = 0.obs; // 0: 1-10, 1: 11-20, 2: 21-31
-  final yearlyPage = 0.obs;  // 0: Jan-Jun, 1: Jul-Dec
-
-  void nextMonthly() {
-    if (monthlyPage.value < 2) monthlyPage.value++;
-  }
-
-  void prevMonthly() {
-    if (monthlyPage.value > 0) monthlyPage.value--;
-  }
-
-  void nextYearly() {
-    if (yearlyPage.value < 1) yearlyPage.value++;
-  }
-
-  void prevYearly() {
-    if (yearlyPage.value > 0) yearlyPage.value--;
-  }
 }

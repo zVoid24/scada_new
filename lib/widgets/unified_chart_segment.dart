@@ -12,11 +12,11 @@ class UnifiedChartSegment extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 12.0),
+      margin: const EdgeInsets.symmetric(horizontal: 0.0, vertical: 8.0),
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24.0),
+        borderRadius: BorderRadius.circular(15.0),
         border: Border.all(color: const Color(0xFFDDE1E6), width: 1.2),
       ),
       child: Column(

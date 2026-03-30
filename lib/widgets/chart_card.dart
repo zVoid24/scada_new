@@ -82,7 +82,7 @@ class ChartCard extends StatelessWidget {
                 () => SfCartesianChart(
                   trackballBehavior: TrackballBehavior(
                     enable: true,
-                    activationMode: ActivationMode.singleTap,
+                    activationMode: ActivationMode.longPress,
                     tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
                     // tooltipSettings: const InteractiveTooltip(enable: true, format: 'series.name : point.y kw'),
                   ),
@@ -113,6 +113,7 @@ class ChartCard extends StatelessWidget {
                     interval: 2,
                     majorGridLines: MajorGridLines(color: Colors.grey.shade300),
                     axisLine: const AxisLine(width: 1, color: Colors.grey),
+                    maximumLabelWidth: 15,
                     labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 10),
                     title: AxisTitle(
                       text: 'Power',
@@ -182,8 +183,8 @@ class ChartCard extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: const Color(0xFFEBF3FC), borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.show_chart, color: Color(0xFF0091FF), size: 18),
+            decoration: BoxDecoration(color: const Color(0xFFE6F1FF), borderRadius: BorderRadius.circular(20)),
+            child: const Icon(Icons.show_chart, color: Color(0xFF6E87A8), size: 18),
           ),
           const SizedBox(width: 10),
           Text(

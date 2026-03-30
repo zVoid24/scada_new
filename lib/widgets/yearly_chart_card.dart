@@ -51,23 +51,27 @@ class YearlyChartCard extends StatelessWidget {
             padding: const EdgeInsets.all(8.0),
             child: SizedBox(
               height: 220,
-              child: Obx(() {
-                final int page = controller.yearlyPage.value;
-                final List<YearChartData> pagedData = page == 0 ? allData.sublist(0, 6) : allData.sublist(6, 12);
-
-                return SfCartesianChart(
+              child: Obx(
+                () => SfCartesianChart(
                   margin: EdgeInsets.zero,
                   plotAreaBorderWidth: 1,
                   plotAreaBorderColor: Colors.grey.shade300,
+                  zoomPanBehavior: ZoomPanBehavior(enablePanning: true, zoomMode: ZoomMode.x),
                   trackballBehavior: TrackballBehavior(
                     enable: true,
-                    activationMode: ActivationMode.singleTap,
+                    activationMode: ActivationMode.longPress,
                     tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
                     tooltipSettings: const InteractiveTooltip(enable: true, format: 'series.name : point.y kWh'),
                   ),
                   primaryXAxis: CategoryAxis(
-                    majorGridLines: MajorGridLines(color: Colors.grey.shade300),
+                    majorGridLines: const MajorGridLines(width: 0),
+                    plotOffset: 25,
                     labelStyle: const TextStyle(fontSize: 10, color: Colors.grey),
+                    labelIntersectAction: AxisLabelIntersectAction.none,
+                    initialVisibleMinimum: -0.5,
+                    initialVisibleMaximum: 5.5,
+                    labelPlacement: LabelPlacement.onTicks,
+                    edgeLabelPlacement: EdgeLabelPlacement.shift,
                   ),
                   primaryYAxis: NumericAxis(
                     minimum: 0,
@@ -89,7 +93,7 @@ class YearlyChartCard extends StatelessWidget {
                     if (controller.isVisible('Solar'))
                       ColumnSeries<YearChartData, String>(
                         name: 'Solar',
-                        dataSource: pagedData,
+                        dataSource: allData,
                         xValueMapper: (d, _) => d.month,
                         yValueMapper: (d, _) => d.solar,
                         color: const Color(0xFF00C7E5),
@@ -99,7 +103,7 @@ class YearlyChartCard extends StatelessWidget {
                     if (controller.isVisible('REB'))
                       ColumnSeries<YearChartData, String>(
                         name: 'REB',
-                        dataSource: pagedData,
+                        dataSource: allData,
                         xValueMapper: (d, _) => d.month,
                         yValueMapper: (d, _) => d.reb,
                         color: const Color(0xFFFF9F00),
@@ -109,7 +113,7 @@ class YearlyChartCard extends StatelessWidget {
                     if (controller.isVisible('Load'))
                       ColumnSeries<YearChartData, String>(
                         name: 'Load',
-                        dataSource: pagedData,
+                        dataSource: allData,
                         xValueMapper: (d, _) => d.month,
                         yValueMapper: (d, _) => d.load,
                         color: const Color(0xFFD300C5),
@@ -119,7 +123,7 @@ class YearlyChartCard extends StatelessWidget {
                     if (controller.isVisible('Generator'))
                       ColumnSeries<YearChartData, String>(
                         name: 'Generator',
-                        dataSource: pagedData,
+                        dataSource: allData,
                         xValueMapper: (d, _) => d.month,
                         yValueMapper: (d, _) => d.gen,
                         color: const Color(0xFF0091FF),
@@ -129,7 +133,7 @@ class YearlyChartCard extends StatelessWidget {
                     if (controller.isVisible('ESS'))
                       ColumnSeries<YearChartData, String>(
                         name: 'ESS',
-                        dataSource: pagedData,
+                        dataSource: allData,
                         xValueMapper: (d, _) => d.month,
                         yValueMapper: (d, _) => d.ess,
                         color: const Color(0xFF7ED321),
@@ -137,12 +141,11 @@ class YearlyChartCard extends StatelessWidget {
                         spacing: 0.1,
                       ),
                   ],
-                );
-              }),
+                ),
+              ),
             ),
           ),
-          _buildPagination(controller),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
         ],
       ),
     );
@@ -155,8 +158,8 @@ class YearlyChartCard extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: const Color(0xFFEBF3FC), borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.bar_chart, color: Color(0xFF0091FF), size: 18),
+            decoration: BoxDecoration(color: const Color(0xFFE6F1FF), borderRadius: BorderRadius.circular(20)),
+            child: const Icon(Icons.bar_chart, color: Color(0xFF6E87A8), size: 18),
           ),
           const SizedBox(width: 10),
           Text(
@@ -175,29 +178,5 @@ class YearlyChartCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Widget _buildPagination(ChartController controller) {
-    return Obx(() {
-      final int page = controller.yearlyPage.value;
-      final String label = page == 0 ? "January - June" : "July - December";
-
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_left, color: Color(0xFF0091FF)),
-            onPressed: page > 0 ? controller.prevYearly : null,
-          ),
-          const SizedBox(width: 8),
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.arrow_right, color: Color(0xFF0091FF)),
-            onPressed: page < 1 ? controller.nextYearly : null,
-          ),
-        ],
-      );
-    });
   }
 }
