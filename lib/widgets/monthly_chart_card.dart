@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
+import '../controllers/chart_controller.dart';
+
 class MonthChartData {
-  MonthChartData(this.x, this.y);
+  MonthChartData(this.x, this.solar, this.reb, this.load, this.gen, this.ess);
   final double x;
-  final double y;
+  final double solar;
+  final double reb;
+  final double load;
+  final double gen;
+  final double ess;
 }
 
 class MonthlyChartCard extends StatelessWidget {
@@ -12,127 +19,150 @@ class MonthlyChartCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<MonthChartData> chartData = [
-      MonthChartData(1, 51),
-      MonthChartData(2, 20),
-      MonthChartData(3, 29),
-      MonthChartData(4, 5),
-      MonthChartData(5, 49),
-    ];
+    final ChartController controller = Get.find<ChartController>();
+
+    // Generate 31 days of mock data
+    final List<MonthChartData> allData = List.generate(31, (i) {
+      final double day = (i + 1).toDouble();
+      return MonthChartData(
+        day,
+        20.0 + (i % 5) * 10,
+        15.0 + (i % 3) * 12,
+        30.0 + (i % 4) * 8,
+        10.0 + (i % 6) * 5,
+        25.0 + (i % 2) * 15,
+      );
+    });
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      margin: const EdgeInsets.symmetric(vertical: 8.0),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8.0),
-        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12.0),
+        border: Border.all(color: const Color(0xFFDDE1E6), width: 1.0),
       ),
       child: Column(
         children: [
+          _buildHeader('This Month Solar Energy - kWh'),
+          const Divider(height: 1),
           Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Row(
-              children: [
-                Icon(Icons.bar_chart, color: Colors.grey.shade600),
-                const SizedBox(width: 8),
-                const Text(
-                  'This Month Solar Energy Chart',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF1A2F50)),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Icon(Icons.file_download_outlined, color: Colors.grey.shade600, size: 20),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, thickness: 1),
-
-          Padding(
-            padding: const EdgeInsets.all(0.0),
+            padding: const EdgeInsets.all(8.0),
             child: SizedBox(
-              height: 250,
-              child: SfCartesianChart(
+              height: 220,
+              child: Obx(() => SfCartesianChart(
+                margin: EdgeInsets.zero,
                 plotAreaBorderWidth: 1,
                 plotAreaBorderColor: Colors.grey.shade300,
-
-                // ✅ KEY FIX: Allow labels to render outside plot area bounds
-                // clipBehavior: Clip.none,
+                zoomPanBehavior: ZoomPanBehavior(enablePanning: true, zoomMode: ZoomMode.x),
                 trackballBehavior: TrackballBehavior(
                   enable: true,
-                  activationMode: ActivationMode.singleTap,
-                  tooltipSettings: const InteractiveTooltip(enable: true, format: 'Power : point.y kwh'),
+                  activationMode: ActivationMode.longPress,
+                  tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
+                  tooltipSettings: const InteractiveTooltip(enable: true, format: 'series.name : point.y kWh'),
                 ),
-                primaryXAxis: NumericAxis(
-                  minimum: 0,
-                  maximum: 31,
-                  interval: 1,
-                  plotOffset: 2,
-                  axisLabelFormatter: (AxisLabelRenderDetails details) {
-                    final int val = details.value.toInt();
-                    if (val == 0) return ChartAxisLabel('', null);
-                    return ChartAxisLabel(val.toString(), null);
-                  },
-                  title: AxisTitle(
-                    text: 'Day',
-                    textStyle: const TextStyle(fontSize: 15, color: Color(0xFF00059F)),
-                  ),
+                primaryXAxis: CategoryAxis(
                   majorGridLines: const MajorGridLines(width: 0),
-                  axisLine: const AxisLine(width: 1, color: Colors.grey),
-                  labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 10),
+                  plotOffset: 17,
+                  labelStyle: const TextStyle(fontSize: 10, color: Colors.grey),
+                  interval: 1,
+                  labelIntersectAction: AxisLabelIntersectAction.none,
+                  // Show 15 days initially
+                  initialVisibleMinimum: -0.8,
+                  initialVisibleMaximum: 14.2,
+                  labelPlacement: LabelPlacement.onTicks,
+                  edgeLabelPlacement: EdgeLabelPlacement.shift,
                 ),
-
                 primaryYAxis: NumericAxis(
-                  // ✅ FIX: Extend max slightly above 60 so bar at 51
-                  // has room for its label without hitting the top boundary
                   minimum: 0,
-                  maximum: 65,
+                  maximum: 70,
                   interval: 10,
-                  // ✅ Hide the 65 tick — we only want 0,10,20,30,40,50,60
-                  axisLabelFormatter: (AxisLabelRenderDetails details) {
-                    final int val = details.value.toInt();
-                    if (val > 60) return ChartAxisLabel('', null);
-                    return ChartAxisLabel(val.toString(), null);
-                  },
-                  title: AxisTitle(
-                    text: 'Power',
-                    textStyle: const TextStyle(fontSize: 15, color: Color(0xFF00059F)),
-                  ),
                   majorGridLines: MajorGridLines(color: Colors.grey.shade300),
-                  axisLine: const AxisLine(width: 1, color: Colors.grey),
-                  labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 10),
+                  labelStyle: const TextStyle(fontSize: 10, color: Colors.grey),
                 ),
-
                 series: <CartesianSeries>[
-                  ColumnSeries<MonthChartData, double>(
-                    dataSource: chartData,
-                    xValueMapper: (data, _) => data.x,
-                    yValueMapper: (data, _) => data.y,
-                    width: 1,
-                    spacing: 0.2,
-                    color: const Color(0xFF82B1FF),
-                    // borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-
-                    // dataLabelSettings: const DataLabelSettings(
-                    //   isVisible: true,
-                    //   angle: 270,
-                    //   margin: EdgeInsets.zero,
-                    //   labelPosition: ChartDataLabelPosition.inside,
-                    //   labelAlignment: ChartDataLabelAlignment.middle,
-                    //   labelIntersectAction: LabelIntersectAction.none,
-                    //   textStyle: TextStyle(fontSize: 12, color: Color(0xFF1A2F50), fontWeight: FontWeight.bold),
-                    // ),
-
-                    // dataLabelMapper: (MonthChartData data, _) => data.y.toStringAsFixed(2),
-                  ),
+                  if (controller.isVisible('Solar'))
+                    ColumnSeries<MonthChartData, String>(
+                      name: 'Solar',
+                      dataSource: allData,
+                      xValueMapper: (d, _) => d.x.toInt().toString(),
+                      yValueMapper: (d, _) => d.solar,
+                      color: const Color(0xFF00C7E5),
+                      width: 0.8,
+                      spacing: 0.1,
+                    ),
+                  if (controller.isVisible('REB'))
+                    ColumnSeries<MonthChartData, String>(
+                      name: 'REB',
+                      dataSource: allData,
+                      xValueMapper: (d, _) => d.x.toInt().toString(),
+                      yValueMapper: (d, _) => d.reb,
+                      color: const Color(0xFFFF9F00),
+                      width: 0.8,
+                      spacing: 0.1,
+                    ),
+                  if (controller.isVisible('Load'))
+                    ColumnSeries<MonthChartData, String>(
+                      name: 'Load',
+                      dataSource: allData,
+                      xValueMapper: (d, _) => d.x.toInt().toString(),
+                      yValueMapper: (d, _) => d.load,
+                      color: const Color(0xFFD300C5),
+                      width: 0.8,
+                      spacing: 0.1,
+                    ),
+                  if (controller.isVisible('Generator'))
+                    ColumnSeries<MonthChartData, String>(
+                      name: 'Generator',
+                      dataSource: allData,
+                      xValueMapper: (d, _) => d.x.toInt().toString(),
+                      yValueMapper: (d, _) => d.gen,
+                      color: const Color(0xFF0091FF),
+                      width: 0.8,
+                      spacing: 0.1,
+                    ),
+                  if (controller.isVisible('ESS'))
+                    ColumnSeries<MonthChartData, String>(
+                      name: 'ESS',
+                      dataSource: allData,
+                      xValueMapper: (d, _) => d.x.toInt().toString(),
+                      yValueMapper: (d, _) => d.ess,
+                      color: const Color(0xFF7ED321),
+                      width: 0.8,
+                      spacing: 0.1,
+                    ),
                 ],
-              ),
+              )),
             ),
+          ),
+          const SizedBox(height: 12), // Replaced pagination with simple padding
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(color: const Color(0xFFEBF3FC), borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.bar_chart, color: Color(0xFF0091FF), size: 18),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF6B7280)),
+          ),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFFDDE1E6)),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Icon(Icons.file_download_outlined, color: Color(0xFF9CA3AF), size: 18),
           ),
         ],
       ),

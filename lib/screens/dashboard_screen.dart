@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
-import '../widgets/chart_card.dart';
+import '../controllers/chart_controller.dart';
 import '../widgets/component_selector.dart';
 import '../widgets/energy_info_card.dart';
 import '../widgets/live_energy_card.dart';
-import '../widgets/monthly_chart_card.dart';
-import '../widgets/yearly_chart_card.dart';
+import '../widgets/unified_chart_segment.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -15,7 +15,8 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-
+  // Initialize the ChartController
+  final ChartController chartController = Get.put(ChartController());
 
   @override
   Widget build(BuildContext context) {
@@ -37,20 +38,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            const ComponentSelector(),
-            const LiveEnergyCard(),
-            const EnergyInfoCard(),
-
-
-
-            const ChartCard(),
-            const MonthlyChartCard(),
-            const YearlyChartCard(),
+            Container(
+              margin: const EdgeInsets.only(top: 16.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24.0),
+                border: Border.all(color: const Color(0xFFDDE1E6), width: 1.2),
+              ),
+              child: const Column(
+                children: [ComponentSelector(), LiveEnergyCard(), EnergyInfoCard(), SizedBox(height: 12)],
+              ),
+            ),
+            const UnifiedChartSegment(),
             const SizedBox(height: 24), // Bottom padding
           ],
         ),
       ),
     );
   }
-
 }

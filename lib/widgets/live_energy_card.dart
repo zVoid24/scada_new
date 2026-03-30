@@ -7,10 +7,16 @@ class LiveEnergyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
       //padding: const EdgeInsets.all(1.0),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16.0)),
-      child: Row(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.0),
+        border: Border.all(color: const Color(0xFFDDE1E6), width: 1.0),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
@@ -97,6 +103,7 @@ class LiveEnergyCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
