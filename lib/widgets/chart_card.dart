@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 import '../controllers/chart_controller.dart';
+import '../services/chart_download_service.dart';
 
 class ChartData {
   ChartData(this.x, this.y);
@@ -63,6 +64,21 @@ class ChartCard extends StatelessWidget {
       ChartData(24, 4.3),
     ];
 
+    // Build download data — map the hourly mock data into ChartRowData.
+    // Each hour x maps to today's date at that hour.
+    final DateTime today = DateTime.now();
+    final List<ChartRowData> downloadRows = List.generate(solarData.length, (i) {
+      final int hour = solarData[i].x.toInt();
+      return ChartRowData(
+        dateTime: DateTime(today.year, today.month, today.day, hour),
+        solar: solarData[i].y,
+        reb: rebData[i].y,
+        load: loadData[i].y,
+        generator: genData[i].y,
+        ess: essData[i].y,
+      );
+    });
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       decoration: BoxDecoration(
@@ -71,8 +87,9 @@ class ChartCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFDDE1E6), width: 1.0),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildHeader('This Day Power Trend -kW'),
+          _buildHeader('This Day Power Trend -kW', context, downloadRows),
           const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.all(8.0),
@@ -102,10 +119,10 @@ class ChartCard extends StatelessWidget {
                     majorGridLines: MajorGridLines(color: Colors.grey.shade200),
                     axisLine: const AxisLine(width: 1, color: Colors.grey),
                     labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 10),
-                    title: AxisTitle(
-                      text: 'Hour',
-                      textStyle: const TextStyle(fontSize: 10, color: Colors.grey),
-                    ),
+                    // title: AxisTitle(
+                    //   text: 'Hour',
+                    //   textStyle: const TextStyle(fontSize: 10, color: Colors.grey),
+                    // ),
                   ),
                   primaryYAxis: NumericAxis(
                     minimum: 0,
@@ -115,10 +132,10 @@ class ChartCard extends StatelessWidget {
                     axisLine: const AxisLine(width: 1, color: Colors.grey),
                     maximumLabelWidth: 15,
                     labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 10),
-                    title: AxisTitle(
-                      text: 'Power',
-                      textStyle: const TextStyle(fontSize: 10, color: Colors.grey),
-                    ),
+                    // title: AxisTitle(
+                    //   text: 'Power',
+                    //   textStyle: const TextStyle(fontSize: 10, color: Colors.grey),
+                    // ),
                   ),
                   series: <CartesianSeries>[
                     if (controller.isVisible('Solar'))
@@ -176,31 +193,54 @@ class ChartCard extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(String title) {
+  Widget _buildHeader(String title, BuildContext context, List<ChartRowData> rows) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(color: const Color(0xFFE6F1FF), borderRadius: BorderRadius.circular(20)),
-            child: const Icon(Icons.show_chart, color: Color(0xFF6E87A8), size: 18),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF6B7280)),
-          ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFFDDE1E6)),
-              borderRadius: BorderRadius.circular(6),
+      child: SizedBox(
+        width: double.infinity,
+        child: Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(color: const Color(0xFFE6F1FF), borderRadius: BorderRadius.circular(20)),
+                  child: const Icon(Icons.show_chart, color: Color(0xFF6E87A8), size: 18),
+                ),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    title,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF6B7280)),
+                  ),
+                ),
+              ],
             ),
-            child: const Icon(Icons.file_download_outlined, color: Color(0xFF9CA3AF), size: 18),
-          ),
-        ],
+            GestureDetector(
+              onTap: () => ChartDownloadService.showDownloadDialog(
+                context: context,
+                chartTitle: 'Daily Power Trend',
+                rows: rows,
+                dateFormat: 'dd-MMM-yyyy HH:00',
+                filePrefix: 'Daily_PowerTrend',
+                unit: 'kW',
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFDDE1E6)),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.file_download_outlined, color: Color(0xFF9CA3AF), size: 18),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
