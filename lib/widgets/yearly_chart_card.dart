@@ -1,4 +1,7 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -15,8 +18,29 @@ class YearChartData {
   final double ess;
 }
 
-class YearlyChartCard extends StatelessWidget {
+class YearlyChartCard extends StatefulWidget {
   const YearlyChartCard({super.key});
+
+  @override
+  State<YearlyChartCard> createState() => _YearlyChartCardState();
+}
+
+class _YearlyChartCardState extends State<YearlyChartCard> {
+  final GlobalKey _offscreenChartKey = GlobalKey();
+
+  Future<Uint8List?> _captureChart() async {
+    try {
+      await WidgetsBinding.instance.endOfFrame;
+      final RenderRepaintBoundary? boundary = _offscreenChartKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return null;
+      final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      debugPrint('Error capturing yearly ghost chart: $e');
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +61,6 @@ class YearlyChartCard extends StatelessWidget {
       YearChartData(DateTime(2024, 12, 1), 20000, 15000, 30000, 10000, 25000),
     ];
 
-    // Build download rows from allData
     final List<ChartRowData> downloadRows = allData.map((d) => ChartRowData(
       dateTime: d.month,
       solar: d.solar,
@@ -54,121 +77,155 @@ class YearlyChartCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.0),
         border: Border.all(color: const Color(0xFFDDE1E6), width: 1.0),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          _buildHeader('This Yearly Solar Energy - kWh', context, downloadRows),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
+          // 1. Ghost Chart (Hidden Off-Screen, Full Range, No Animation)
+          Positioned(
+            left: -5000,
+            top: 0,
             child: SizedBox(
+              width: MediaQuery.of(context).size.width - 40,
               height: 220,
-              child: Obx(
-                () => SfCartesianChart(
-                  margin: EdgeInsets.zero,
-                  plotAreaBorderWidth: 1,
-                  plotAreaBorderColor: Colors.grey.shade300,
-                  zoomPanBehavior: ZoomPanBehavior(enablePanning: true, zoomMode: ZoomMode.x),
-                  trackballBehavior: TrackballBehavior(
-                    enable: true,
-                    activationMode: ActivationMode.longPress,
-                    tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
-                    tooltipSettings: const InteractiveTooltip(enable: true, format: 'series.name : point.y kWh'),
-                  ),
-                  primaryXAxis: DateTimeCategoryAxis(
-                    majorGridLines: const MajorGridLines(width: 0),
-                    labelStyle: const TextStyle(fontSize: 10, color: Colors.grey),
-                    initialVisibleMinimum: DateTime.now().month >= 7 ? DateTime(2024, 7, 1) : DateTime(2024, 1, 1),
-                    initialVisibleMaximum: DateTime.now().month >= 7 ? DateTime(2024, 12, 1) : DateTime(2024, 6, 1),
-                    labelIntersectAction: AxisLabelIntersectAction.none,
-                    labelPlacement: LabelPlacement.betweenTicks,
-                    edgeLabelPlacement: EdgeLabelPlacement.shift,
-                    interval: 1,
-                    intervalType: DateTimeIntervalType.months,
-                    axisLabelFormatter: (AxisLabelRenderDetails details) {
-                      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                      final int index = details.value.toInt();
-                      if (index >= 0 && index < months.length) {
-                        return ChartAxisLabel(months[index], details.textStyle);
-                      }
-                      return ChartAxisLabel('', details.textStyle);
-                    },
-                  ),
-                  primaryYAxis: NumericAxis(
-                    minimum: 0,
-                    maximum: 140000,
-                    interval: 20000,
-                    majorGridLines: MajorGridLines(color: Colors.grey.shade300),
-                    labelStyle: const TextStyle(fontSize: 10, color: Colors.grey),
-                    axisLabelFormatter: (args) {
-                      final int val = args.value.toInt();
-                      if (val >= 100000)
-                        return ChartAxisLabel(
-                          '${(val / 1000).toStringAsFixed(0)}k', // Keep consistent with monthly or stick to k
-                          args.textStyle,
-                        );
-                      return ChartAxisLabel('${val ~/ 1000}k', args.textStyle);
-                    },
-                  ),
-                  series: <CartesianSeries>[
-                    if (controller.isVisible('Solar'))
-                      ColumnSeries<YearChartData, DateTime>(
-                        name: 'Solar',
-                        dataSource: allData,
-                        xValueMapper: (d, _) => d.month,
-                        yValueMapper: (d, _) => d.solar,
-                        color: const Color(0xFF00C7E5),
-                        width: 0.8,
-                        spacing: 0.1,
-                      ),
-                    if (controller.isVisible('Grid'))
-                      ColumnSeries<YearChartData, DateTime>(
-                        name: 'Grid',
-                        dataSource: allData,
-                        xValueMapper: (d, _) => d.month,
-                        yValueMapper: (d, _) => d.grid,
-                        color: const Color(0xFFFF9F00),
-                        width: 0.8,
-                        spacing: 0.1,
-                      ),
-                    if (controller.isVisible('Load'))
-                      ColumnSeries<YearChartData, DateTime>(
-                        name: 'Load',
-                        dataSource: allData,
-                        xValueMapper: (d, _) => d.month,
-                        yValueMapper: (d, _) => d.load,
-                        color: const Color(0xFFD300C5),
-                        width: 0.8,
-                        spacing: 0.1,
-                      ),
-                    if (controller.isVisible('Generator'))
-                      ColumnSeries<YearChartData, DateTime>(
-                        name: 'Generator',
-                        dataSource: allData,
-                        xValueMapper: (d, _) => d.month,
-                        yValueMapper: (d, _) => d.gen,
-                        color: const Color(0xFF0091FF),
-                        width: 0.8,
-                        spacing: 0.1,
-                      ),
-                    if (controller.isVisible('ESS'))
-                      ColumnSeries<YearChartData, DateTime>(
-                        name: 'ESS',
-                        dataSource: allData,
-                        xValueMapper: (d, _) => d.month,
-                        yValueMapper: (d, _) => d.ess,
-                        color: const Color(0xFF7ED321),
-                        width: 0.8,
-                        spacing: 0.1,
-                      ),
-                  ],
+              child: RepaintBoundary(
+                key: _offscreenChartKey,
+                child: Obx(
+                  () => _buildChart(controller, allData, isGhost: true),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 12),
+
+          // 2. Visible UI
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHeader('This Yearly Solar Energy - kWh', context, downloadRows),
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: SizedBox(
+                  height: 220,
+                  child: Obx(
+                    () => _buildChart(controller, allData, isGhost: false),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildChart(ChartController controller, List<YearChartData> data, {required bool isGhost}) {
+    return SfCartesianChart(
+      margin: const EdgeInsets.only(left: 10, top: 10, right: 15, bottom: 10),
+      plotAreaBorderWidth: 1,
+      plotAreaBorderColor: Colors.grey.shade300,
+      zoomPanBehavior: isGhost ? null : ZoomPanBehavior(enablePanning: true, zoomMode: ZoomMode.x),
+      trackballBehavior: isGhost
+          ? null
+          : TrackballBehavior(
+              enable: true,
+              activationMode: ActivationMode.longPress,
+              tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
+              tooltipSettings: const InteractiveTooltip(enable: true, format: 'series.name : point.y kWh'),
+            ),
+      primaryXAxis: DateTimeCategoryAxis(
+        majorGridLines: const MajorGridLines(width: 0),
+        labelStyle: const TextStyle(fontSize: 10, color: Colors.grey),
+        // Ghost chart always shows full year
+        initialVisibleMinimum: isGhost
+            ? null
+            : (DateTime.now().month >= 7 ? DateTime(2024, 7, 1) : DateTime(2024, 1, 1)),
+        initialVisibleMaximum: isGhost
+            ? null
+            : (DateTime.now().month >= 7 ? DateTime(2024, 12, 1) : DateTime(2024, 6, 1)),
+        labelIntersectAction: AxisLabelIntersectAction.none,
+        labelPlacement: LabelPlacement.betweenTicks,
+        edgeLabelPlacement: EdgeLabelPlacement.shift,
+        interval: 1,
+        intervalType: DateTimeIntervalType.months,
+        axisLabelFormatter: (AxisLabelRenderDetails details) {
+          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          final int index = details.value.toInt();
+          if (index >= 0 && index < months.length) {
+            return ChartAxisLabel(months[index], details.textStyle);
+          }
+          return ChartAxisLabel('', details.textStyle);
+        },
+      ),
+      primaryYAxis: NumericAxis(
+        minimum: 0,
+        maximum: 140000,
+        interval: 20000,
+        majorGridLines: MajorGridLines(color: Colors.grey.shade300),
+        labelStyle: const TextStyle(fontSize: 10, color: Colors.grey),
+        axisLabelFormatter: (AxisLabelRenderDetails args) {
+          final double val = args.value.toDouble();
+          if (val == 0) return ChartAxisLabel('0', args.textStyle);
+          return ChartAxisLabel('${(val / 1000).toInt()}k', args.textStyle);
+        },
+      ),
+      series: <CartesianSeries>[
+        if (controller.isVisible('Solar'))
+          ColumnSeries<YearChartData, DateTime>(
+            name: 'Solar',
+            dataSource: data,
+            xValueMapper: (d, _) => d.month,
+            yValueMapper: (d, _) => d.solar,
+            color: const Color(0xFF00C7E5),
+            width: 0.8,
+            spacing: 0.1,
+            animationDuration: isGhost ? 0 : 1500,
+          ),
+        if (controller.isVisible('Grid'))
+          ColumnSeries<YearChartData, DateTime>(
+            name: 'Grid',
+            dataSource: data,
+            xValueMapper: (d, _) => d.month,
+            yValueMapper: (d, _) => d.grid,
+            color: const Color(0xFFFF9F00),
+            width: 0.8,
+            spacing: 0.1,
+            animationDuration: isGhost ? 0 : 1500,
+          ),
+        if (controller.isVisible('Load'))
+          ColumnSeries<YearChartData, DateTime>(
+            name: 'Load',
+            dataSource: data,
+            xValueMapper: (d, _) => d.month,
+            yValueMapper: (d, _) => d.load,
+            color: const Color(0xFFD300C5),
+            width: 0.8,
+            spacing: 0.1,
+            animationDuration: isGhost ? 0 : 1500,
+          ),
+        if (controller.isVisible('Generator'))
+          ColumnSeries<YearChartData, DateTime>(
+            name: 'Generator',
+            dataSource: data,
+            xValueMapper: (d, _) => d.month,
+            yValueMapper: (d, _) => d.gen,
+            color: const Color(0xFF0091FF),
+            width: 0.8,
+            spacing: 0.1,
+            animationDuration: isGhost ? 0 : 1500,
+          ),
+        if (controller.isVisible('ESS'))
+          ColumnSeries<YearChartData, DateTime>(
+            name: 'ESS',
+            dataSource: data,
+            xValueMapper: (d, _) => d.month,
+            yValueMapper: (d, _) => d.ess,
+            color: const Color(0xFF7ED321),
+            width: 0.8,
+            spacing: 0.1,
+            animationDuration: isGhost ? 0 : 1500,
+          ),
+      ],
     );
   }
 
@@ -207,6 +264,7 @@ class YearlyChartCard extends StatelessWidget {
                 rows: rows,
                 dateFormat: 'MMM dd, yyyy',
                 filePrefix: 'Yearly_SolarEnergy',
+                onCaptureChart: _captureChart,
               ),
               child: Container(
                 padding: const EdgeInsets.all(4),

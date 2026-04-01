@@ -1,4 +1,7 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -15,14 +18,37 @@ class MonthChartData {
   final double ess;
 }
 
-class MonthlyChartCard extends StatelessWidget {
+class MonthlyChartCard extends StatefulWidget {
   const MonthlyChartCard({super.key});
+
+  @override
+  State<MonthlyChartCard> createState() => _MonthlyChartCardState();
+}
+
+class _MonthlyChartCardState extends State<MonthlyChartCard> {
+  final GlobalKey _offscreenChartKey = GlobalKey();
+
+  Future<Uint8List?> _captureChart() async {
+    try {
+      // Small wait to ensure ghost chart is rendered initially
+      await WidgetsBinding.instance.endOfFrame;
+
+      // Capture the off-screen chart. No setState or delays needed.
+      final RenderRepaintBoundary? boundary = _offscreenChartKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return null;
+      final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      debugPrint('Error capturing monthly ghost chart: $e');
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final ChartController controller = Get.find<ChartController>();
 
-    // Generate days of mock data for the current month
     final DateTime now = DateTime.now();
     final int daysInMonth = DateTime(now.year, now.month + 1, 0).day;
     final List<MonthChartData> allData = List.generate(daysInMonth, (i) {
@@ -30,14 +56,13 @@ class MonthlyChartCard extends StatelessWidget {
       return MonthChartData(
         date,
         20.0 + (i % 5) * 10,
-        15.0 + (i % 3) * 12, // grid
+        15.0 + (i % 3) * 12,
         30.0 + (i % 4) * 8,
         10.0 + (i % 6) * 5,
         25.0 + (i % 2) * 15,
       );
     });
 
-    // Build download rows from allData
     final List<ChartRowData> downloadRows = allData
         .map((d) => ChartRowData(dateTime: d.x, solar: d.solar, grid: d.grid, load: d.load, generator: d.gen, ess: d.ess))
         .toList();
@@ -49,113 +74,146 @@ class MonthlyChartCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12.0),
         border: Border.all(color: const Color(0xFFDDE1E6), width: 1.0),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          _buildHeader('This Month Solar Energy - kWh', context, downloadRows),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
+          // 1. Ghost Chart (Hidden Off-Screen, Full Range, No Animation)
+          Positioned(
+            left: -5000,
+            top: 0,
             child: SizedBox(
+              width: MediaQuery.of(context).size.width - 40,
               height: 220,
-              child: Obx(
-                () => SfCartesianChart(
-                  margin: EdgeInsets.zero,
-                  plotAreaBorderWidth: 1,
-                  plotAreaBorderColor: Colors.grey.shade300,
-                  zoomPanBehavior: ZoomPanBehavior(enablePanning: true, zoomMode: ZoomMode.x),
-                  trackballBehavior: TrackballBehavior(
-                    enable: true,
-                    activationMode: ActivationMode.longPress,
-                    tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
-                    // tooltipSettings: const InteractiveTooltip(enable: true, format: 'series.name : point.y kWh'),
-                  ),
-                  primaryXAxis: DateTimeCategoryAxis(
-                    majorGridLines: const MajorGridLines(width: 0),
-                    labelStyle: const TextStyle(fontSize: 10, color: Colors.grey),
-                    interval: 1,
-                    intervalType: DateTimeIntervalType.days,
-                    // Set initial view to show 15 days (1-15 or 16-end) based on today's date.
-                    initialVisibleMinimum: now.day <= 15
-                        ? DateTime(now.year, now.month, 1)
-                        : DateTime(now.year, now.month, 16),
-                    initialVisibleMaximum: now.day <= 15
-                        ? DateTime(now.year, now.month, 15)
-                        : DateTime(now.year, now.month, daysInMonth),
-                    labelPlacement: LabelPlacement.betweenTicks,
-                    edgeLabelPlacement: EdgeLabelPlacement.shift,
-                    axisLabelFormatter: (AxisLabelRenderDetails details) {
-                      // For DateTimeCategoryAxis, details.value is the index of the data point.
-                      // Since we have 31 days starting from 1, index + 1 gives us the day number.
-                      return ChartAxisLabel((details.value.toInt() + 1).toString(), details.textStyle);
-                    },
-                  ),
-                  primaryYAxis: NumericAxis(
-                    minimum: 0,
-                    maximum: 70,
-                    interval: 10,
-                    majorGridLines: MajorGridLines(color: Colors.grey.shade300),
-                    labelStyle: const TextStyle(fontSize: 10, color: Colors.grey),
-                  ),
-                  series: <CartesianSeries>[
-                    if (controller.isVisible('Solar'))
-                      ColumnSeries<MonthChartData, DateTime>(
-                        name: 'Solar',
-                        dataSource: allData,
-                        xValueMapper: (d, _) => d.x,
-                        yValueMapper: (d, _) => d.solar,
-                        color: const Color(0xFF00C7E5),
-                        width: 0.8,
-                        spacing: 0.1,
-                      ),
-                    if (controller.isVisible('Grid'))
-                      ColumnSeries<MonthChartData, DateTime>(
-                        name: 'Grid',
-                        dataSource: allData,
-                        xValueMapper: (d, _) => d.x,
-                        yValueMapper: (d, _) => d.grid,
-                        color: const Color(0xFFFF9F00),
-                        width: 0.8,
-                        spacing: 0.1,
-                      ),
-                    if (controller.isVisible('Load'))
-                      ColumnSeries<MonthChartData, DateTime>(
-                        name: 'Load',
-                        dataSource: allData,
-                        xValueMapper: (d, _) => d.x,
-                        yValueMapper: (d, _) => d.load,
-                        color: const Color(0xFFD300C5),
-                        width: 0.8,
-                        spacing: 0.1,
-                      ),
-                    if (controller.isVisible('Generator'))
-                      ColumnSeries<MonthChartData, DateTime>(
-                        name: 'Generator',
-                        dataSource: allData,
-                        xValueMapper: (d, _) => d.x,
-                        yValueMapper: (d, _) => d.gen,
-                        color: const Color(0xFF0091FF),
-                        width: 0.8,
-                        spacing: 0.1,
-                      ),
-                    if (controller.isVisible('ESS'))
-                      ColumnSeries<MonthChartData, DateTime>(
-                        name: 'ESS',
-                        dataSource: allData,
-                        xValueMapper: (d, _) => d.x,
-                        yValueMapper: (d, _) => d.ess,
-                        color: const Color(0xFF7ED321),
-                        width: 0.8,
-                        spacing: 0.1,
-                      ),
-                  ],
+              child: RepaintBoundary(
+                key: _offscreenChartKey,
+                child: Obx(
+                  () => _buildChart(controller, allData, isGhost: true),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 12), // Replaced pagination with simple padding
+
+          // 2. Visible UI
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHeader('This Month Solar Energy - kWh', context, downloadRows),
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: SizedBox(
+                  height: 220,
+                  child: Obx(
+                    () => _buildChart(controller, allData, isGhost: false),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildChart(ChartController controller, List<MonthChartData> data, {required bool isGhost}) {
+    final DateTime now = DateTime.now();
+    final int daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+
+    return SfCartesianChart(
+      margin: const EdgeInsets.only(left: 10, top: 10, right: 15, bottom: 10),
+      plotAreaBorderWidth: 1,
+      plotAreaBorderColor: Colors.grey.shade300,
+      zoomPanBehavior: isGhost ? null : ZoomPanBehavior(enablePanning: true, zoomMode: ZoomMode.x),
+      trackballBehavior: isGhost
+          ? null
+          : TrackballBehavior(
+              enable: true,
+              activationMode: ActivationMode.longPress,
+              tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
+            ),
+      primaryXAxis: DateTimeCategoryAxis(
+        majorGridLines: const MajorGridLines(width: 0),
+        labelStyle: const TextStyle(fontSize: 10, color: Colors.grey),
+        interval: 1,
+        intervalType: DateTimeIntervalType.days,
+        // Ghost chart always shows full month
+        initialVisibleMinimum: isGhost
+            ? null
+            : (now.day <= 15 ? DateTime(now.year, now.month, 1) : DateTime(now.year, now.month, 16)),
+        initialVisibleMaximum: isGhost
+            ? null
+            : (now.day <= 15 ? DateTime(now.year, now.month, 15) : DateTime(now.year, now.month, daysInMonth)),
+        labelPlacement: LabelPlacement.betweenTicks,
+        edgeLabelPlacement: EdgeLabelPlacement.shift,
+        axisLabelFormatter: (AxisLabelRenderDetails details) {
+          return ChartAxisLabel((details.value.toInt() + 1).toString(), details.textStyle);
+        },
+      ),
+      primaryYAxis: NumericAxis(
+        minimum: 0,
+        maximum: 70,
+        interval: 10,
+        majorGridLines: MajorGridLines(color: Colors.grey.shade300),
+        labelStyle: const TextStyle(fontSize: 10, color: Colors.grey),
+      ),
+      series: <CartesianSeries>[
+        if (controller.isVisible('Solar'))
+          ColumnSeries<MonthChartData, DateTime>(
+            name: 'Solar',
+            dataSource: data,
+            xValueMapper: (d, _) => d.x,
+            yValueMapper: (d, _) => d.solar,
+            color: const Color(0xFF00C7E5),
+            width: 0.8,
+            spacing: 0.1,
+            animationDuration: isGhost ? 0 : 1500,
+          ),
+        if (controller.isVisible('Grid'))
+          ColumnSeries<MonthChartData, DateTime>(
+            name: 'Grid',
+            dataSource: data,
+            xValueMapper: (d, _) => d.x,
+            yValueMapper: (d, _) => d.grid,
+            color: const Color(0xFFFF9F00),
+            width: 0.8,
+            spacing: 0.1,
+            animationDuration: isGhost ? 0 : 1500,
+          ),
+        if (controller.isVisible('Load'))
+          ColumnSeries<MonthChartData, DateTime>(
+            name: 'Load',
+            dataSource: data,
+            xValueMapper: (d, _) => d.x,
+            yValueMapper: (d, _) => d.load,
+            color: const Color(0xFFD300C5),
+            width: 0.8,
+            spacing: 0.1,
+            animationDuration: isGhost ? 0 : 1500,
+          ),
+        if (controller.isVisible('Generator'))
+          ColumnSeries<MonthChartData, DateTime>(
+            name: 'Generator',
+            dataSource: data,
+            xValueMapper: (d, _) => d.x,
+            yValueMapper: (d, _) => d.gen,
+            color: const Color(0xFF0091FF),
+            width: 0.8,
+            spacing: 0.1,
+            animationDuration: isGhost ? 0 : 1500,
+          ),
+        if (controller.isVisible('ESS'))
+          ColumnSeries<MonthChartData, DateTime>(
+            name: 'ESS',
+            dataSource: data,
+            xValueMapper: (d, _) => d.x,
+            yValueMapper: (d, _) => d.ess,
+            color: const Color(0xFF7ED321),
+            width: 0.8,
+            spacing: 0.1,
+            animationDuration: isGhost ? 0 : 1500,
+          ),
+      ],
     );
   }
 
@@ -194,6 +252,7 @@ class MonthlyChartCard extends StatelessWidget {
                 rows: rows,
                 dateFormat: 'dd-MMM-yyyy',
                 filePrefix: 'Monthly_SolarEnergy',
+                onCaptureChart: _captureChart,
               ),
               child: Container(
                 padding: const EdgeInsets.all(4),
