@@ -17,6 +17,17 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   // Initialize the ChartController
   final ChartController chartController = Get.put(ChartController());
+  late final String selectedComponent;
+
+  @override
+  void initState() {
+    super.initState();
+    // Get the selected component from arguments (default to 'Grid')
+    selectedComponent = Get.arguments ?? 'Grid';
+
+    // Initially, set only the selected component as visible in the chart legend.
+    chartController.resetToSingle(selectedComponent);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,11 +38,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFF0F2040)),
-          onPressed: () {},
+          onPressed: () => Get.back(),
         ),
-        title: const Text(
-          'Home',
-          style: TextStyle(color: Color(0xFF0F2040), fontSize: 16, fontWeight: FontWeight.w600),
+        title: Text(
+          selectedComponent,
+          style: const TextStyle(color: Color(0xFF0F2040), fontSize: 20, fontWeight: FontWeight.w700),
         ),
         centerTitle: true,
       ),
@@ -45,8 +56,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 borderRadius: BorderRadius.circular(15.0),
                 border: Border.all(color: const Color(0xFFDDE1E6), width: 1.2),
               ),
-              child: const Column(
-                children: [ComponentSelector(), LiveEnergyCard(), EnergyInfoCard(), SizedBox(height: 12)],
+              child: Column(
+                children: [
+                  ComponentSelector(initialComponentName: selectedComponent),
+                  const LiveEnergyCard(),
+                  const EnergyInfoCard(),
+                  const SizedBox(height: 12)
+                ],
               ),
             ),
             const UnifiedChartSegment(),

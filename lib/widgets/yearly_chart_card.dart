@@ -6,10 +6,10 @@ import '../controllers/chart_controller.dart';
 import '../services/chart_download_service.dart';
 
 class YearChartData {
-  YearChartData(this.month, this.solar, this.reb, this.load, this.gen, this.ess);
+  YearChartData(this.month, this.solar, this.grid, this.load, this.gen, this.ess);
   final DateTime month;
   final double solar;
-  final double reb;
+  final double grid;
   final double load;
   final double gen;
   final double ess;
@@ -41,7 +41,7 @@ class YearlyChartCard extends StatelessWidget {
     final List<ChartRowData> downloadRows = allData.map((d) => ChartRowData(
       dateTime: d.month,
       solar: d.solar,
-      reb: d.reb,
+      grid: d.grid,
       load: d.load,
       generator: d.gen,
       ess: d.ess,
@@ -121,12 +121,12 @@ class YearlyChartCard extends StatelessWidget {
                         width: 0.8,
                         spacing: 0.1,
                       ),
-                    if (controller.isVisible('REB'))
+                    if (controller.isVisible('Grid'))
                       ColumnSeries<YearChartData, DateTime>(
-                        name: 'REB',
+                        name: 'Grid',
                         dataSource: allData,
                         xValueMapper: (d, _) => d.month,
-                        yValueMapper: (d, _) => d.reb,
+                        yValueMapper: (d, _) => d.grid,
                         color: const Color(0xFFFF9F00),
                         width: 0.8,
                         spacing: 0.1,

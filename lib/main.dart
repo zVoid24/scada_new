@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
-import 'screens/dashboard_screen.dart';
+import 'screens/selection_screen.dart';
 
 void main() {
-  // runApp(
-  //   DevicePreview(
-  //     enabled: true,
-  //     builder: (context) => MyApp(), // Wrap your app
-  //   ),
-  // );
   runApp(const MyApp());
 }
 
@@ -17,15 +12,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       title: 'Scada Dashboard',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
-        fontFamily: 'Roboto', // Fallback, looks fairly clean
+        fontFamily: 'Roboto',
       ),
-      home: const DashboardScreen(),
+      home: const SelectionScreen(),
     );
   }
 }

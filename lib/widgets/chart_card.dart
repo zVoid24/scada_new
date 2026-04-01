@@ -27,7 +27,7 @@ class ChartCard extends StatelessWidget {
       ChartData(20, 6.8),
       ChartData(24, 2.9),
     ];
-    final List<ChartData> rebData = [
+    final List<ChartData> gridData = [
       ChartData(0, 3),
       ChartData(4, 3.5),
       ChartData(8, 5.5),
@@ -72,7 +72,7 @@ class ChartCard extends StatelessWidget {
       return ChartRowData(
         dateTime: DateTime(today.year, today.month, today.day, hour),
         solar: solarData[i].y,
-        reb: rebData[i].y,
+        grid: gridData[i].y,
         load: loadData[i].y,
         generator: genData[i].y,
         ess: essData[i].y,
@@ -147,10 +147,10 @@ class ChartCard extends StatelessWidget {
                         color: const Color(0xFF00C7E5),
                         width: 2,
                       ),
-                    if (controller.isVisible('REB'))
+                    if (controller.isVisible('Grid'))
                       SplineSeries<ChartData, double>(
-                        name: 'REB',
-                        dataSource: rebData,
+                        name: 'Grid',
+                        dataSource: gridData,
                         xValueMapper: (d, _) => d.x,
                         yValueMapper: (d, _) => d.y,
                         color: const Color(0xFFFF9F00),

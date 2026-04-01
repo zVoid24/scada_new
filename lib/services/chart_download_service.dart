@@ -13,7 +13,7 @@ class ChartRowData {
   const ChartRowData({
     required this.dateTime,
     required this.solar,
-    required this.reb,
+    required this.grid,
     required this.load,
     required this.generator,
     required this.ess,
@@ -21,7 +21,7 @@ class ChartRowData {
 
   final DateTime dateTime;
   final double solar;
-  final double reb;
+  final double grid;
   final double load;
   final double generator;
   final double ess;
@@ -155,7 +155,7 @@ class ChartDownloadService {
       final List<String> headers = [
         'Date / Time',
         'Solar ($unit)',
-        'REB ($unit)',
+        'Grid ($unit)',
         'Load ($unit)',
         'Generator ($unit)',
         'ESS ($unit)',
@@ -188,7 +188,7 @@ class ChartDownloadService {
         dateCell.cellStyle.borders.all.color = '#000000';
 
         // Numeric cells
-        final List<double> values = [d.solar, d.reb, d.load, d.generator, d.ess];
+        final List<double> values = [d.solar, d.grid, d.load, d.generator, d.ess];
         for (int c = 0; c < values.length; c++) {
           final numCell = sheet.getRangeByIndex(row, c + 2);
           numCell.setNumber(values[c]);
@@ -266,7 +266,7 @@ class ChartDownloadService {
         grid.columns[0].width = 120;
 
         final PdfGridRow headerRow = grid.headers.add(1)[0];
-        final List<String> cols = ['Date/Time', 'Solar', 'REB', 'Load', 'Generator', 'ESS'];
+        final List<String> cols = ['Date/Time', 'Solar', 'Grid', 'Load', 'Generator', 'ESS'];
         for (int j = 0; j < cols.length; j++) {
           headerRow.cells[j].value = j == 0 ? cols[j] : '${cols[j]} ($unit)';
           headerRow.cells[j].style = PdfGridCellStyle(
@@ -285,7 +285,7 @@ class ChartDownloadService {
           final PdfGridRow row = grid.rows.add();
           row.cells[0].value = DateFormat(dateFormat).format(d.dateTime);
           row.cells[1].value = d.solar.toStringAsFixed(2);
-          row.cells[2].value = d.reb.toStringAsFixed(2);
+          row.cells[2].value = d.grid.toStringAsFixed(2);
           row.cells[3].value = d.load.toStringAsFixed(2);
           row.cells[4].value = d.generator.toStringAsFixed(2);
           row.cells[5].value = d.ess.toStringAsFixed(2);

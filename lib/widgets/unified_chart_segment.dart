@@ -41,7 +41,7 @@ class UnifiedLegend extends StatelessWidget {
 
     final List<Map<String, dynamic>> legendItems = [
       {'name': 'Solar', 'color': const Color(0xFF00C7E5)},
-      {'name': 'REB', 'color': const Color(0xFFFF9F00)},
+      {'name': 'Grid', 'color': const Color(0xFFFF9F00)},
       {'name': 'Load', 'color': const Color(0xFFD300C5)},
       {'name': 'Generator', 'color': const Color(0xFF0091FF)},
       {'name': 'ESS', 'color': const Color(0xFF7ED321)},

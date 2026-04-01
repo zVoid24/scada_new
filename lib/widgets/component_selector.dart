@@ -7,14 +7,27 @@ class ComponentItem {
 }
 
 class ComponentSelector extends StatefulWidget {
-  const ComponentSelector({super.key});
+  final String? initialComponentName;
+  const ComponentSelector({super.key, this.initialComponentName});
 
   @override
   State<ComponentSelector> createState() => _ComponentSelectorState();
 }
 
 class _ComponentSelectorState extends State<ComponentSelector> {
-  int _selectedIndex = 3; // 'Load' is selected in the image
+  late int _selectedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = 3; // Default to 'Load' if no match
+    if (widget.initialComponentName != null) {
+      final index = _components.indexWhere((c) => c.name.toLowerCase() == widget.initialComponentName!.toLowerCase());
+      if (index != -1) {
+        _selectedIndex = index;
+      }
+    }
+  }
 
   final List<ComponentItem> _components = [
     ComponentItem(name: 'Solar'),

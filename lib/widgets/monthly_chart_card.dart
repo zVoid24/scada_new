@@ -6,10 +6,10 @@ import '../controllers/chart_controller.dart';
 import '../services/chart_download_service.dart';
 
 class MonthChartData {
-  MonthChartData(this.x, this.solar, this.reb, this.load, this.gen, this.ess);
+  MonthChartData(this.x, this.solar, this.grid, this.load, this.gen, this.ess);
   final DateTime x;
   final double solar;
-  final double reb;
+  final double grid;
   final double load;
   final double gen;
   final double ess;
@@ -22,14 +22,15 @@ class MonthlyChartCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ChartController controller = Get.find<ChartController>();
 
-    // Generate 31 days of mock data for the current month
+    // Generate days of mock data for the current month
     final DateTime now = DateTime.now();
-    final List<MonthChartData> allData = List.generate(31, (i) {
+    final int daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    final List<MonthChartData> allData = List.generate(daysInMonth, (i) {
       final DateTime date = DateTime(now.year, now.month, i + 1);
       return MonthChartData(
         date,
         20.0 + (i % 5) * 10,
-        15.0 + (i % 3) * 12,
+        15.0 + (i % 3) * 12, // grid
         30.0 + (i % 4) * 8,
         10.0 + (i % 6) * 5,
         25.0 + (i % 2) * 15,
@@ -38,7 +39,7 @@ class MonthlyChartCard extends StatelessWidget {
 
     // Build download rows from allData
     final List<ChartRowData> downloadRows = allData
-        .map((d) => ChartRowData(dateTime: d.x, solar: d.solar, reb: d.reb, load: d.load, generator: d.gen, ess: d.ess))
+        .map((d) => ChartRowData(dateTime: d.x, solar: d.solar, grid: d.grid, load: d.load, generator: d.gen, ess: d.ess))
         .toList();
 
     return Container(
@@ -74,14 +75,13 @@ class MonthlyChartCard extends StatelessWidget {
                     labelStyle: const TextStyle(fontSize: 10, color: Colors.grey),
                     interval: 1,
                     intervalType: DateTimeIntervalType.days,
-                    // Use a smaller delta for initial view to ensure label '1' is shown even on small phones.
-                    // Set initial view to show the current day at the end (March 16-31 for March 31).
-                    initialVisibleMinimum: DateTime(
-                      DateTime.now().year,
-                      DateTime.now().month,
-                      (DateTime.now().day - 14).clamp(1, 31),
-                    ),
-                    initialVisibleMaximum: DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day),
+                    // Set initial view to show 15 days (1-15 or 16-end) based on today's date.
+                    initialVisibleMinimum: now.day <= 15
+                        ? DateTime(now.year, now.month, 1)
+                        : DateTime(now.year, now.month, 16),
+                    initialVisibleMaximum: now.day <= 15
+                        ? DateTime(now.year, now.month, 15)
+                        : DateTime(now.year, now.month, daysInMonth),
                     labelPlacement: LabelPlacement.betweenTicks,
                     edgeLabelPlacement: EdgeLabelPlacement.shift,
                     axisLabelFormatter: (AxisLabelRenderDetails details) {
@@ -108,12 +108,12 @@ class MonthlyChartCard extends StatelessWidget {
                         width: 0.8,
                         spacing: 0.1,
                       ),
-                    if (controller.isVisible('REB'))
+                    if (controller.isVisible('Grid'))
                       ColumnSeries<MonthChartData, DateTime>(
-                        name: 'REB',
+                        name: 'Grid',
                         dataSource: allData,
                         xValueMapper: (d, _) => d.x,
-                        yValueMapper: (d, _) => d.reb,
+                        yValueMapper: (d, _) => d.grid,
                         color: const Color(0xFFFF9F00),
                         width: 0.8,
                         spacing: 0.1,
