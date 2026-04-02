@@ -211,7 +211,7 @@ class ChartDownloadService {
       }
 
       addInfoRow(1, 'Project Name', 'SCADA Monitoring System');
-      addInfoRow(2, 'Date & Time', DateFormat('dd MMMM yyyy @ hh:mm a').format(DateTime.now()));
+      addInfoRow(2, 'Date & Time', DateFormat('dd-MM-yyyy , hh:mm a').format(DateTime.now()));
       addInfoRow(3, 'User Name', 'Sabbir'); // Default user name as per screenshot
       // Row 4 can be a spacer or extra info
       sheet.getRangeByName('B4:F4').merge();
@@ -399,7 +399,7 @@ class ChartDownloadService {
       g.drawString(
         chartTitle,
         titleFont,
-        brush: PdfSolidBrush(PdfColor(0, 199, 229)),
+        brush: PdfSolidBrush(PdfColor(29, 205, 159)),
         bounds: Rect.fromLTWH(marginX, cursorY, contentWidth, 25),
       );
       cursorY += 30;
@@ -415,28 +415,46 @@ class ChartDownloadService {
       // =====================
       // 3. DATA TABLE
       // =====================
+      const double totalTableWidth = 490.0;
+      final double tableX = (pageWidth - totalTableWidth) / 2;
+
       g.drawString(
         'Data Table',
         titleFont,
-        brush: PdfSolidBrush(PdfColor(0, 199, 229)),
+        brush: PdfSolidBrush(PdfColor(29, 205, 159)),
         bounds: Rect.fromLTWH(marginX, cursorY, contentWidth, 25),
       );
       cursorY += 30;
 
       final PdfGrid table = PdfGrid();
       table.columns.add(count: 6);
-      table.columns[0].width = 120;
+      // Fixed column widths: 140 (Date) + 5 * 70 (Values) = 490
+      table.columns[0].width = 140;
+      for (int i = 1; i < 6; i++) {
+        table.columns[i].width = 70;
+      }
 
       final PdfGridRow head = table.headers.add(1)[0];
       final List<String> labels = ['Date & Time (UTC)', 'Solar', 'Grid', 'Load', 'Generator', 'ESS'];
+      final PdfPen borderPen = PdfPen(PdfColor(180, 180, 180), width: 0.8);
+
+      table.style = PdfGridStyle(font: normalFont, cellPadding: PdfPaddings(left: 8, top: 10, bottom: 10, right: 8));
+      table.repeatHeader = true;
+
       for (int i = 0; i < labels.length; i++) {
         head.cells[i].value = i == 0 ? labels[i] : '${labels[i]} ($unit)';
         head.cells[i].style = PdfGridCellStyle(
-          backgroundBrush: PdfSolidBrush(PdfColor(68, 114, 196)),
+          backgroundBrush: PdfSolidBrush(PdfColor(66, 133, 244)), // Cleaner Blue
           textBrush: PdfBrushes.white,
           font: headerFont,
+          borders: PdfBorders()..all = PdfPen(PdfColor(0, 0, 0, 0), width: 0),
           format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
         );
+        // Table Outer Borders (Top/Left/Right/Bottom)
+        head.cells[i].style.borders.top = borderPen;
+        head.cells[i].style.borders.bottom = borderPen; // Line under header (repeated on pages)
+        if (i == 0) head.cells[i].style.borders.left = borderPen;
+        if (i == labels.length - 1) head.cells[i].style.borders.right = borderPen;
       }
 
       for (int r = 0; r < rows.length; r++) {
@@ -450,17 +468,26 @@ class ChartDownloadService {
         row.cells[5].value = d.ess.toStringAsFixed(2);
 
         final PdfBrush bgBrush = r.isEven ? PdfSolidBrush(PdfColor(245, 250, 255)) : PdfBrushes.white;
+
         for (int c = 0; c < 6; c++) {
           row.cells[c].style = PdfGridCellStyle(
             backgroundBrush: bgBrush,
             font: normalFont,
+            borders: PdfBorders()..all = PdfPen(PdfColor(0, 0, 0, 0), width: 0),
             format: PdfStringFormat(alignment: PdfTextAlignment.center, lineAlignment: PdfVerticalAlignment.middle),
           );
+
+          // Table Outer Borders (Left/Right)
+          if (c == 0) row.cells[c].style.borders.left = borderPen;
+          if (c == 5) row.cells[c].style.borders.right = borderPen;
+
+          // Horizontal lines (Bottom Border) for all rows
+          // This ensures a border exists at page breaks and matches the clean design.
+          row.cells[c].style.borders.bottom = borderPen;
         }
       }
 
-      table.style = PdfGridStyle(font: normalFont, cellPadding: PdfPaddings(left: 6, top: 6, bottom: 6, right: 6));
-      table.draw(page: page, bounds: Rect.fromLTWH(marginX, cursorY, contentWidth, 0));
+      table.draw(page: page, bounds: Rect.fromLTWH(tableX, cursorY, totalTableWidth, 0));
 
       final List<int> bytes = document.saveSync();
       document.dispose();

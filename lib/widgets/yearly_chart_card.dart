@@ -27,10 +27,15 @@ class YearlyChartCard extends StatefulWidget {
 
 class _YearlyChartCardState extends State<YearlyChartCard> {
   final GlobalKey _offscreenChartKey = GlobalKey();
+  final RxBool _isGenerating = false.obs;
 
   Future<Uint8List?> _captureChart() async {
     try {
+      _isGenerating.value = true;
+      // Allow one frame for the ghost chart to be added to the tree and rendered
+      await Future.delayed(Duration.zero);
       await WidgetsBinding.instance.endOfFrame;
+
       final RenderRepaintBoundary? boundary = _offscreenChartKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return null;
       final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
@@ -39,6 +44,8 @@ class _YearlyChartCardState extends State<YearlyChartCard> {
     } catch (e) {
       debugPrint('Error capturing yearly ghost chart: $e');
       return null;
+    } finally {
+      _isGenerating.value = false;
     }
   }
 
@@ -80,20 +87,22 @@ class _YearlyChartCardState extends State<YearlyChartCard> {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // 1. Ghost Chart (Hidden Off-Screen, Full Range, No Animation)
-          Positioned(
-            left: -5000,
-            top: 0,
-            child: SizedBox(
-              width: MediaQuery.of(context).size.width - 40,
-              height: 220,
-              child: RepaintBoundary(
-                key: _offscreenChartKey,
-                child: Obx(
-                  () => _buildChart(controller, allData, isGhost: true),
-                ),
-              ),
-            ),
+          // 1. Ghost Chart (Rendered only on-demand during export)
+          Obx(
+            () => _isGenerating.value
+                ? Positioned(
+                    left: -5000,
+                    top: 0,
+                    child: SizedBox(
+                      width: MediaQuery.of(context).size.width - 40,
+                      height: 220,
+                      child: RepaintBoundary(
+                        key: _offscreenChartKey,
+                        child: _buildChart(controller, allData, isGhost: true),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
           ),
 
           // 2. Visible UI

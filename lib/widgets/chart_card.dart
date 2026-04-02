@@ -22,18 +22,17 @@ class ChartCard extends StatefulWidget {
 }
 
 class _ChartCardState extends State<ChartCard> {
-  final GlobalKey _offscreenChartKey = GlobalKey();
+  final GlobalKey _chartKey = GlobalKey();
 
   Future<Uint8List?> _captureChart() async {
     try {
-      await WidgetsBinding.instance.endOfFrame;
-      final RenderRepaintBoundary? boundary = _offscreenChartKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      final RenderRepaintBoundary? boundary = _chartKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return null;
       final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
       final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       return byteData?.buffer.asUint8List();
     } catch (e) {
-      debugPrint('Error capturing daily ghost chart: $e');
+      debugPrint('Error capturing daily chart: $e');
       return null;
     }
   }
@@ -83,41 +82,22 @@ class _ChartCardState extends State<ChartCard> {
         borderRadius: BorderRadius.circular(12.0),
         border: Border.all(color: const Color(0xFFDDE1E6), width: 1.0),
       ),
-      child: Stack(
-        clipBehavior: Clip.none,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 1. Ghost Chart (Hidden Off-Screen, No Animation)
-          Positioned(
-            left: -5000,
-            top: 100, // Offset a bit from the header area of the stack
+          _buildHeader('This Day Power Trend -kW', context, downloadRows),
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
             child: SizedBox(
-              width: MediaQuery.of(context).size.width - 40,
               height: 220,
               child: RepaintBoundary(
-                key: _offscreenChartKey,
+                key: _chartKey,
                 child: Obx(
-                  () => _buildChart(controller, solarData, gridData, loadData, genData, essData, isGhost: true),
+                  () => _buildChart(controller, solarData, gridData, loadData, genData, essData),
                 ),
               ),
             ),
-          ),
-
-          // 2. Visible UI
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildHeader('This Day Power Trend -kW', context, downloadRows),
-              const Divider(height: 1),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: SizedBox(
-                  height: 220,
-                  child: Obx(
-                    () => _buildChart(controller, solarData, gridData, loadData, genData, essData, isGhost: false),
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -130,20 +110,17 @@ class _ChartCardState extends State<ChartCard> {
     List<ChartData> grid,
     List<ChartData> load,
     List<ChartData> gen,
-    List<ChartData> ess, {
-    required bool isGhost,
-  }) {
+    List<ChartData> ess,
+  ) {
     return SfCartesianChart(
       margin: const EdgeInsets.only(left: 10, top: 10, right: 15, bottom: 10),
       plotAreaBorderWidth: 1,
       plotAreaBorderColor: Colors.grey.shade300,
-      trackballBehavior: isGhost
-          ? null
-          : TrackballBehavior(
-              enable: true,
-              activationMode: ActivationMode.longPress,
-              tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
-            ),
+      trackballBehavior: TrackballBehavior(
+        enable: true,
+        activationMode: ActivationMode.longPress,
+        tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
+      ),
       primaryXAxis: NumericAxis(
         minimum: 0,
         maximum: 24,
@@ -175,7 +152,7 @@ class _ChartCardState extends State<ChartCard> {
             yValueMapper: (d, _) => d.y,
             color: const Color(0xFF00C7E5),
             width: 2,
-            animationDuration: isGhost ? 0 : 1500,
+            animationDuration: 1500,
           ),
         if (controller.isVisible('Grid'))
           SplineSeries<ChartData, double>(
@@ -185,7 +162,7 @@ class _ChartCardState extends State<ChartCard> {
             yValueMapper: (d, _) => d.y,
             color: const Color(0xFFFF9F00),
             width: 2,
-            animationDuration: isGhost ? 0 : 1500,
+            animationDuration: 1500,
           ),
         if (controller.isVisible('Load'))
           SplineSeries<ChartData, double>(
@@ -195,7 +172,7 @@ class _ChartCardState extends State<ChartCard> {
             yValueMapper: (d, _) => d.y,
             color: const Color(0xFFD300C5),
             width: 2,
-            animationDuration: isGhost ? 0 : 1500,
+            animationDuration: 1500,
           ),
         if (controller.isVisible('Generator'))
           SplineSeries<ChartData, double>(
@@ -205,7 +182,7 @@ class _ChartCardState extends State<ChartCard> {
             yValueMapper: (d, _) => d.y,
             color: const Color(0xFF0091FF),
             width: 2,
-            animationDuration: isGhost ? 0 : 1500,
+            animationDuration: 1500,
           ),
         if (controller.isVisible('ESS'))
           SplineSeries<ChartData, double>(
@@ -215,7 +192,7 @@ class _ChartCardState extends State<ChartCard> {
             yValueMapper: (d, _) => d.y,
             color: const Color(0xFF7ED321),
             width: 2,
-            animationDuration: isGhost ? 0 : 1500,
+            animationDuration: 1500,
           ),
       ],
     );
