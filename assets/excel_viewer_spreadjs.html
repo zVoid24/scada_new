@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Excel Viewer (SpreadJS)</title>
+    <!-- SpreadJS Styles - Local assets -->
+    <link href="gc.spread.sheets.excel2013white.css" rel="stylesheet" type="text/css" />
+    
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #f3f3f3;
+        }
+        #spread-container {
+            width: 100%;
+            height: 100vh;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="spread-container"></div>
+
+    <!-- SpreadJS Local Assets -->
+    <script src="gc.spread.sheets.all.min.js"></script>
+    <script src="gc.spread.sheets.io.min.js"></script>
+    <script src="gc.spread.sheets.shapes.min.js"></script>
+    <script src="gc.spread.sheets.charts.min.js"></script>
+
+    <script>
+        // No license key provided (Trial mode with watermark)
+        // GC.Spread.Sheets.LicenseKey = "";
+
+        let spread;
+
+        // Initialize SpreadJS when DOM is ready
+        window.addEventListener('DOMContentLoaded', function() {
+            try {
+                spread = new GC.Spread.Sheets.Workbook(document.getElementById("spread-container"), {
+                    sheetCount: 1
+                });
+                
+                // Configure viewer settings
+                spread.options.tabStripVisible = true;
+                spread.options.allowUserDragFill = false;
+                spread.options.allowUserDragDrop = false;
+                spread.options.showHorizontalScrollbar = true;
+                spread.options.showVerticalScrollbar = true;
+                spread.options.tabNavigationVisible = true;
+                
+                console.log("SpreadJS initialized");
+            } catch (e) {
+                console.error("Initialization error:", e);
+            }
+        });
+
+        /**
+         * Converts a Base64 string to a Blob for SpreadJS import
+         */
+        function base64ToBlob(b64Data, contentType = '', sliceSize = 512) {
+            const byteCharacters = atob(b64Data);
+            const byteArrays = [];
+            for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+                const slice = byteCharacters.slice(offset, offset + sliceSize);
+                const byteNumbers = new Array(slice.length);
+                for (let i = 0; i < slice.length; i++) {
+                    byteNumbers[i] = slice.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                byteArrays.push(byteArray);
+            }
+            return new Blob(byteArrays, { type: contentType });
+        }
+
+        /**
+         * Exposed globally for Flutter Webview call
+         */
+        window.loadExcel = function(base64String) {
+            if (!spread) {
+                console.warn("Spread not fully initialized, retrying in 100ms...");
+                setTimeout(() => window.loadExcel(base64String), 100);
+                return;
+            }
+            
+            try {
+                const blob = base64ToBlob(base64String, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                
+                spread.import(blob, function() {
+                    console.log("Excel imported successfully via SpreadJS");
+                    spread.refresh();
+                }, function(e) {
+                    console.error("SpreadJS Import error:", e);
+                }, {
+                    fileType: GC.Spread.Sheets.FileType.excel
+                });
+            } catch (err) {
+                console.error("Error in loadExcel bridge:", err);
+            }
+        };
+    </script>
+</body>
+</html>
