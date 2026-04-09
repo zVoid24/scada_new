@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Excel Viewer</title>
+    <style>
+        :root {
+            --office-green: #217346;
+            --excel-bg: #f3f3f3;
+            --excel-border: #d4d4d4;
+            --excel-header-bg: #f8f9fa;
+            --excel-header-text: #666;
+        }
+
+        body,
+        html {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: var(--excel-bg);
+            display: flex;
+            flex-direction: column;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+        }
+
+        /* RIBBON */
+        #ribbon {
+            height: 48px;
+            background-color: var(--office-green);
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            border-bottom: 3px solid #1a5a37;
+            flex-shrink: 0;
+        }
+
+        #ribbon img {
+            height: 28px;
+            margin-right: 12px;
+        }
+
+        #ribbon-tabs {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .ribbon-tab {
+            opacity: 0.8;
+            cursor: pointer;
+            padding-bottom: 2px;
+        }
+
+        .ribbon-tab.active {
+            opacity: 1;
+            border-bottom: 2px solid white;
+        }
+
+        /* FORMULA BAR */
+        #formula-bar {
+            height: 32px;
+            background-color: white;
+            border-bottom: 1px solid var(--excel-border);
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        #cell-address {
+            width: 60px;
+            padding: 0 10px;
+            border-right: 1px solid var(--excel-border);
+            font-weight: bold;
+            color: var(--office-green);
+            flex-shrink: 0;
+        }
+
+        #formula-input {
+            flex: 1;
+            padding: 0 15px;
+            border: none;
+            outline: none;
+            color: #444;
+            font-size: 13px;
+        }
+
+        /* GRID */
+        #viewer-container {
+            flex: 1;
+            width: 100%;
+            overflow: auto;
+            background-color: #e6e6e6;
+            position: relative;
+        }
+
+        #table-wrapper {
+            display: inline-block;
+            min-width: 100%;
+        }
+
+        .excel-table {
+            border-collapse: collapse;
+            background: white;
+            table-layout: auto;
+            margin: 0;
+        }
+
+        .excel-table th,
+        .excel-table td {
+            border: 1px solid var(--excel-border);
+            padding: 3px 4px;
+            font-size: 13px;
+            white-space: nowrap;
+            word-break: normal;
+            min-width: 64px;
+            vertical-align: middle;
+            overflow: hidden;
+            text-align: left;
+            /* Default */
+        }
+
+        .black-border {
+            border: 1px solid #000000 !important;
+        }
+
+        .excel-header {
+            background-color: var(--excel-header-bg);
+            color: var(--excel-header-text);
+            font-weight: normal;
+            text-align: center;
+            border: 1px solid #c0c0c0 !important;
+            position: sticky;
+            z-index: 10;
+            user-select: none;
+        }
+
+        .excel-header.col-header {
+            top: 0;
+        }
+
+        .excel-header.row-header {
+            left: 0;
+            width: 40px;
+            min-width: 40px;
+        }
+
+        .excel-header.corner-header {
+            top: 0;
+            left: 0;
+            z-index: 20;
+        }
+
+        /* BOTTOM TABS */
+        #status-bar {
+            height: 32px;
+            background-color: var(--excel-bg);
+            border-top: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            flex-shrink: 0;
+            overflow-x: auto;
+        }
+
+        #tab-container {
+            display: flex;
+            gap: 2px;
+        }
+
+        .sheet-tab {
+            padding: 4px 20px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #444;
+            background-color: #e6e6e6;
+            border: 1px solid #ccc;
+            border-top: none;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .sheet-tab.tab-active {
+            background-color: white;
+            border-bottom: 3px solid var(--office-green);
+            color: var(--office-green);
+            font-weight: bold;
+        }
+
+        /* LOADING */
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.92);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            font-size: 14px;
+            color: #555;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        #loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #eee;
+            border-top-color: var(--office-green);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* CELL IMAGE */
+        .cell-img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            max-width: 100%;
+        }
+
+        td.has-image {
+            padding: 2px;
+        }
+
+        /* Syncfusion Style Headers */
+        .sync-header {
+            background-color: #0078d4 !important;
+            color: white !important;
+            font-weight: bold !important;
+            text-align: center !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading">
+        <div id="loading-spinner"></div>
+        <span>Initialising Excel Preview…</span>
+    </div>
+
+    <div id="viewer-container">
+        <div id="table-wrapper"></div>
+    </div>
+
+    <div id="status-bar">
+        <div id="tab-container"></div>
+    </div>
+
+    <script src="xlsx.full.min.js"></script>
+    <script src="jszip.min.js"></script>
+
+    <script>
+        let wb = null;
+        let drawings = {};      // { sheetIndex: [ { src, row, col } ] }
+
+        /* ─────────────────────────────────────────────
+           IMAGE EXTRACTION  (all 3 bugs fixed)
+        ───────────────────────────────────────────── */
+        async function fetchImages(arrayBuffer) {
+            const result = {};
+            try {
+                const zip = await JSZip.loadAsync(arrayBuffer);
+
+                // 1. Read workbook.xml to know how many sheets exist
+                const wbFile = zip.file('xl/workbook.xml');
+                if (!wbFile) return result;
+                const wbXml = new DOMParser().parseFromString(
+                    await wbFile.async('string'), 'text/xml'
+                );
+                const sheetEls = wbXml.getElementsByTagName('sheet');
+
+                for (let i = 0; i < sheetEls.length; i++) {
+                    const sheetNum = i + 1;
+
+                    // 2. FIX #3 — find drawing via RELATIONSHIP file, not by index assumption
+                    const wsRelPath = `xl/worksheets/_rels/sheet${sheetNum}.xml.rels`;
+                    const wsRelFile = zip.file(wsRelPath);
+                    if (!wsRelFile) continue;
+
+                    const wsRelsXml = new DOMParser().parseFromString(
+                        await wsRelFile.async('string'), 'text/xml'
+                    );
+                    const wsRels = wsRelsXml.getElementsByTagName('Relationship');
+                    let drawingTarget = null;
+                    for (let r = 0; r < wsRels.length; r++) {
+                        const type = wsRels[r].getAttribute('Type') || '';
+                        if (type.indexOf('/drawing') !== -1) {
+                            drawingTarget = wsRels[r].getAttribute('Target');
+                            break;
+                        }
+                    }
+                    if (!drawingTarget) continue;
+
+                    // Resolve relative path: "../drawings/drawing1.xml" → "xl/drawings/drawing1.xml"
+                    const drawingPath = 'xl/' + drawingTarget.replace('../', '');
+                    const drawingFile = zip.file(drawingPath);
+                    if (!drawingFile) continue;
+
+                    // 3. Load image rels for this drawing
+                    const drawRelPath = drawingPath.replace(
+                        'xl/drawings/', 'xl/drawings/_rels/'
+                    ) + '.rels';
+                    const drawRelFile = zip.file(drawRelPath);
+                    if (!drawRelFile) continue;
+
+                    const imgRels = {};
+                    const drawRelsXml = new DOMParser().parseFromString(
+                        await drawRelFile.async('string'), 'text/xml'
+                    );
+                    const relTags = drawRelsXml.getElementsByTagName('Relationship');
+                    for (let r = 0; r < relTags.length; r++) {
+                        const id = relTags[r].getAttribute('Id');
+                        const target = relTags[r].getAttribute('Target');
+                        // Normalise path: "../media/image1.png" → "xl/media/image1.png"
+                        imgRels[id] = target.indexOf('../media/') === 0
+                            ? 'xl/media/' + target.slice('../media/'.length)
+                            : target;
+                    }
+
+                    // 4. FIX #2 — collect BOTH twoCellAnchor AND oneCellAnchor
+                    const drawXml = new DOMParser().parseFromString(
+                        await drawingFile.async('string'), 'text/xml'
+                    );
+                    const twoCell = Array.from(drawXml.getElementsByTagName('xdr:twoCellAnchor'));
+                    const oneCell = Array.from(drawXml.getElementsByTagName('xdr:oneCellAnchor'));
+                    const anchors = twoCell.concat(oneCell);
+
+                    const sheetImgs = [];
+                    for (const anchor of anchors) {
+                        try {
+                            const from = anchor.getElementsByTagName('xdr:from')[0];
+                            const blip = anchor.getElementsByTagName('a:blip')[0];
+                            if (!from || !blip) continue;
+
+                            const rId = blip.getAttribute('r:embed');
+                            const path = imgRels[rId];
+                            if (!path || !zip.file(path)) continue;
+
+                            const ext = path.split('.').pop().toLowerCase();
+                            const mime = (ext === 'jpg') ? 'jpeg' : ext;
+                            const b64 = await zip.file(path).async('base64');
+
+                            sheetImgs.push({
+                                src: `data:image/${mime};base64,${b64}`,
+                                row: parseInt(from.getElementsByTagName('xdr:row')[0].textContent, 10),
+                                col: parseInt(from.getElementsByTagName('xdr:col')[0].textContent, 10)
+                            });
+                        } catch (e) {
+                            console.warn('Skipped anchor:', e);
+                        }
+                    }
+                    result[i] = sheetImgs;
+                }
+            } catch (e) {
+                console.error('fetchImages error:', e);
+            }
+            return result;
+        }
+
+        /* ─────────────────────────────────────────────
+           MERGE MAP
+        ───────────────────────────────────────────── */
+        function buildMergeMap(sheet) {
+            const map = {};
+            (sheet['!merges'] || []).forEach(m => {
+                for (let r = m.s.r; r <= m.e.r; r++) {
+                    for (let c = m.s.c; c <= m.e.c; c++) {
+                        if (r === m.s.r && c === m.s.c) {
+                            map[`${r},${c}`] = { rs: m.e.r - m.s.r + 1, cs: m.e.c - m.s.c + 1 };
+                        } else {
+                            map[`${r},${c}`] = 'skip';
+                        }
+                    }
+                }
+            });
+            return map;
+        }
+
+        /* ─────────────────────────────────────────────
+           RENDER SHEET
+        ───────────────────────────────────────────── */
+        function render(sheetName, sIdx) {
+            const ws = wb.Sheets[sheetName];
+            if (!ws || !ws['!ref']) return;
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            const wrapper = document.getElementById('table-wrapper');
+            wrapper.innerHTML = '';
+
+            // FIX #1 — build picMap keyed by absolute (row, col) matching loop vars
+            const picMap = {};
+            (drawings[sIdx] || []).forEach(img => {
+                const key = `${img.row},${img.col}`;
+                if (!picMap[key]) picMap[key] = [];
+                picMap[key].push(img);
+            });
+
+            const mergeMap = buildMergeMap(ws);
+            const table = document.createElement('table');
+            table.className = 'excel-table';
+
+            // Colgroup
+            const cg = document.createElement('colgroup');
+            for (let c = range.s.c; c <= range.e.c; c++) {
+                const col = document.createElement('col');
+                const wch = (ws['!cols'] && ws['!cols'][c] && ws['!cols'][c].wch)
+                    ? ws['!cols'][c].wch : 10;
+
+                // Make the first column (Column A, c === 0) wider
+                const widthMultiplier = (c === 0) ? 14 : 8;
+                col.style.width = Math.max(wch * widthMultiplier, 120) + 'px';
+                cg.appendChild(col);
+            }
+            table.appendChild(cg);
+
+            // Row header/Column header identifiers removed per request
+
+
+            // Data rows
+            for (let r = range.s.r; r <= range.e.r; r++) {
+                const tr = document.createElement('tr');
+
+                // Row height
+                let rowHeightPx = 20;
+                if (ws['!rows'] && ws['!rows'][r] && ws['!rows'][r].hpt) {
+                    rowHeightPx = Math.round(ws['!rows'][r].hpt * 1.33);
+                }
+                tr.style.height = rowHeightPx + 'px';
+
+                // Row identifier removed per request
+
+
+                for (let c = range.s.c; c <= range.e.c; c++) {
+                    const mergeInfo = mergeMap[`${r},${c}`];
+                    if (mergeInfo === 'skip') continue;
+
+                    const td = document.createElement('td');
+                    if (mergeInfo) {
+                        td.rowSpan = mergeInfo.rs;
+                        td.colSpan = mergeInfo.cs;
+                    }
+
+                    const cell = ws[XLSX.utils.encode_cell({ r, c })];
+                    const pics = picMap[`${r},${c}`];
+
+                    // Apply Black Borders only if the cell has content (text or images) or is the Logo cell
+                    if ((cell && cell.v !== undefined && cell.v !== '') || (pics && pics.length > 0) || (r === 0 && c === 0)) {
+                        td.classList.add('black-border');
+                    }
+
+                    // Inject static logo for cell A1 (row 0, col 0)
+                    if (r === 0 && c === 0) {
+                        td.classList.add('has-image');
+                        const spanRows = mergeInfo ? mergeInfo.rs : 1;
+                        td.style.height = (rowHeightPx * spanRows) + 'px';
+
+                        const iEl = document.createElement('img');
+                        iEl.src = 'Logo-scube.png';
+                        iEl.style.width = '180px';
+                        iEl.style.height = '100px';
+                        iEl.style.objectFit = 'contain';
+                        iEl.style.display = 'block';
+                        iEl.style.margin = 'auto';
+                        iEl.alt = 'Logo';
+                        td.appendChild(iEl);
+                    } else if (pics && pics.length > 0) {
+                        // FIX #3 — proper image sizing
+                        td.classList.add('has-image');
+
+                        // For merged cells give height based on rowSpan
+                        const spanRows = mergeInfo ? mergeInfo.rs : 1;
+                        td.style.height = (rowHeightPx * spanRows) + 'px';
+
+                        pics.forEach(img => {
+                            const iEl = document.createElement('img');
+                            iEl.src = img.src;
+                            iEl.className = 'cell-img';
+                            iEl.alt = '';
+                            td.appendChild(iEl);
+                        });
+
+                        // Still show text if any (below image)
+                        if (cell && cell.v !== undefined && cell.v !== '') {
+                            const txt = document.createElement('div');
+                            txt.style.fontSize = '12px';
+                            txt.style.marginTop = '2px';
+                            txt.textContent = cell.v;
+                            td.appendChild(txt);
+                        }
+                    } else {
+                        // Normal text cell
+                        if (cell && cell.v !== undefined) {
+                            const val = String(cell.v);
+                            td.textContent = val;
+
+                            // Center Align for Row 5 and onwards
+                            if (r >= 4) {
+                                td.style.textAlign = 'center';
+                            }
+
+                            // Header Styling: Only apply to Row 5 (index 4)
+                            if (r === 4) {
+                                td.classList.add('sync-header');
+                            }
+                        } else {
+                            td.textContent = '';
+                            if (r >= 4) td.style.textAlign = 'center';
+                        }
+
+                        if (cell && cell.s) {
+                            const align = cell.s.alignment;
+                            if (align) {
+                                if (align.horizontal) td.style.textAlign = align.horizontal;
+                                if (align.vertical) td.style.verticalAlign = align.vertical;
+                                if (align.wrapText) td.style.whiteSpace = 'nowrap';
+                            }
+                            if (cell.s.font) {
+                                if (cell.s.font.bold) td.style.fontWeight = 'bold';
+                                if (cell.s.font.italic) td.style.fontStyle = 'italic';
+                                if (cell.s.font.color && cell.s.font.color.rgb) {
+                                    td.style.color = '#' + cell.s.font.color.rgb.slice(-6);
+                                }
+                            }
+                            if (cell.s.fill && cell.s.fill.fgColor && cell.s.fill.fgColor.rgb) {
+                                const bg = cell.s.fill.fgColor.rgb.slice(-6);
+                                if (bg !== 'FFFFFF' && bg !== '000000') {
+                                    td.style.backgroundColor = '#' + bg;
+                                }
+                            }
+                        }
+                    }
+
+                    tr.appendChild(td);
+                }
+                table.appendChild(tr);
+            }
+            wrapper.appendChild(table);
+        }
+
+        /* ─────────────────────────────────────────────
+           HELPERS
+        ───────────────────────────────────────────── */
+        function makeHeaderCell(text, cls) {
+            const th = document.createElement('th');
+            th.className = cls;
+            th.textContent = text;
+            return th;
+        }
+
+        /* ─────────────────────────────────────────────
+           PUBLIC LOADER  — call from parent page
+        ───────────────────────────────────────────── */
+        window.loadExcel = async function (base64String, fileName) {
+            const loadEl = document.getElementById('loading');
+            loadEl.style.display = 'flex';
+            try {
+                // Decode base64 → ArrayBuffer
+                const binary = atob(base64String);
+                const buf = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) buf[i] = binary.charCodeAt(i);
+                const arrayBuffer = buf.buffer;
+
+                // Extract images first (needs raw bytes)
+                drawings = await fetchImages(arrayBuffer);
+
+                // Parse workbook
+                wb = XLSX.read(buf, { type: 'array', cellStyles: true });
+
+                // Build sheet tabs
+                const tc = document.getElementById('tab-container');
+                tc.innerHTML = '';
+                wb.SheetNames.forEach((name, idx) => {
+                    const tab = document.createElement('div');
+                    tab.className = 'sheet-tab' + (idx === 0 ? ' tab-active' : '');
+                    tab.textContent = name;
+                    tab.onclick = () => {
+                        document.querySelectorAll('.sheet-tab')
+                            .forEach(t => t.classList.remove('tab-active'));
+                        tab.classList.add('tab-active');
+                        render(name, idx);
+                    };
+                    tc.appendChild(tab);
+                });
+
+                render(wb.SheetNames[0], 0);
+
+            } catch (err) {
+                console.error('loadExcel error:', err);
+                alert('Failed to load Excel file. Check console for details.');
+            } finally {
+                loadEl.style.display = 'none';
+            }
+        };
+    </script>
+</body>
+
+</html>

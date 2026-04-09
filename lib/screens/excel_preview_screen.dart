@@ -50,13 +50,13 @@ class _ExcelPreviewScreenState extends State<ExcelPreviewScreen> {
           },
         ),
       )
-      ..loadFlutterAsset('assets/excel_viewer_spreadjs.html');
+      ..loadFlutterAsset('assets/excel_viewer_html.html');
   }
 
   Future<void> _loadExcelData(String base64) async {
     try {
       // Use raw string in JS to avoid interpolation issues
-      await _controller.runJavaScript('window.loadExcel(`${base64}`)');
+      await _controller.runJavaScript('window.loadExcel(`${base64}`, `${widget.title}`)');
     } catch (e) {
       debugPrint("Error injecting excel JS: $e");
     }
